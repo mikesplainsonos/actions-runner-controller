@@ -105,7 +105,7 @@ generate: controller-gen
 	$(CONTROLLER_GEN) object:headerFile=./hack/boilerplate.go.txt paths="./..."
 
 # Build the docker image
-docker-build: test
+docker-build:
 	docker build . -t ${NAME}:${VERSION}
 
 # Push the docker image
@@ -163,7 +163,7 @@ acceptance/pull:
 
 acceptance/setup:
 	kubectl apply --validate=false -f https://github.com/jetstack/cert-manager/releases/download/v1.0.4/cert-manager.yaml	#kubectl create namespace actions-runner-system
-	kubectl -n cert-manager wait deploy/cert-manager-cainjector --for condition=available --timeout 60s
+	kubectl -n cert-manager wait deploy/cert-manager-cainjector --for condition=available --timeout 90s
 	kubectl -n cert-manager wait deploy/cert-manager-webhook --for condition=available --timeout 60s
 	kubectl -n cert-manager wait deploy/cert-manager --for condition=available --timeout 60s
 	kubectl create namespace actions-runner-system || true
@@ -221,6 +221,7 @@ OS_NAME := $(shell uname -s | tr A-Z a-z)
 
 # find or download etcd
 etcd:
+ifeq (, $(shell which etcd))
 ifeq (, $(wildcard $(TEST_ASSETS)/etcd))
 	@{ \
 	set -xe ;\
@@ -238,9 +239,13 @@ ETCD_BIN=$(TEST_ASSETS)/etcd
 else
 ETCD_BIN=$(TEST_ASSETS)/etcd
 endif
+else
+ETCD_BIN=$(shell which etcd)
+endif
 
 # find or download kube-apiserver
 kube-apiserver:
+ifeq (, $(shell which kube-apiserver))
 ifeq (, $(wildcard $(TEST_ASSETS)/kube-apiserver))
 	@{ \
 	set -xe ;\
@@ -258,10 +263,13 @@ KUBE_APISERVER_BIN=$(TEST_ASSETS)/kube-apiserver
 else
 KUBE_APISERVER_BIN=$(TEST_ASSETS)/kube-apiserver
 endif
-
+else
+KUBE_APISERVER_BIN=$(shell which kube-apiserver)
+endif
 
 # find or download kubectl
 kubectl:
+ifeq (, $(shell which kubectl))
 ifeq (, $(wildcard $(TEST_ASSETS)/kubectl))
 	@{ \
 	set -xe ;\
@@ -278,4 +286,7 @@ ifeq (, $(wildcard $(TEST_ASSETS)/kubectl))
 KUBECTL_BIN=$(TEST_ASSETS)/kubectl
 else
 KUBECTL_BIN=$(TEST_ASSETS)/kubectl
+endif
+else
+KUBECTL_BIN=$(shell which kubectl)
 endif
